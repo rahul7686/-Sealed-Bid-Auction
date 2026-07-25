@@ -125,13 +125,16 @@ export default function App() {
         <div className="section-heading">
           <div>
             <p className="eyebrow">Wallet</p>
-            <h2>Connect 1AM for web3 transactions</h2>
+            <h2>Connect 1AM</h2>
           </div>
         </div>
 
         <div className="button-row">
           <button disabled={!walletReady} onClick={() => void connectWallet()}>
             Connect 1AM
+          </button>
+          <button className="ghost" disabled={!walletReady} onClick={() => void walletManager?.disconnect?.()}>
+            Disconnect Wallet
           </button>
         </div>
 
