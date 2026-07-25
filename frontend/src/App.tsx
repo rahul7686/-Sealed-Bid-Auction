@@ -21,6 +21,7 @@ export default function App() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [walletStatus, setWalletStatus] = useState("Disconnected");
+  const [walletDetail, setWalletDetail] = useState("No wallet connected");
   const [item, setItem] = useState("Rare painting: Midnight over Nassau");
   const [bidder, setBidder] = useState("alice");
   const [amount, setAmount] = useState("100");
@@ -56,6 +57,7 @@ export default function App() {
         setWalletManager(manager);
         setWalletReady(true);
         setWalletStatus("Ready to connect wallet");
+        setWalletDetail("Wallet manager loaded");
       } catch {
         if (!mounted) return;
         setWalletReady(false);
@@ -81,6 +83,14 @@ export default function App() {
     const active = await connect1AM(walletManager);
     setWallet(active);
     setWalletStatus(active.name ? `${active.name} connected` : "Wallet connected");
+    setWalletDetail("Active wallet object captured");
+  };
+
+  const disconnectWallet = async () => {
+    await walletManager?.disconnect?.();
+    setWallet(null);
+    setWalletStatus("Disconnected");
+    setWalletDetail("Wallet disconnected");
   };
 
   const submitAuctionAction = async (
@@ -91,13 +101,13 @@ export default function App() {
   ) => {
     if (wallet) {
       const tx = await submitWalletAction(wallet, action, payload);
-      setStatus(`${success} Wallet tx: ${formatShort(tx)}`);
+      setStatus(`${success} Wallet tx submitted: ${formatShort(tx)}`);
       await fallback();
       refresh();
       return;
     }
     await fallback();
-    setStatus(`${success} Local mode only. Connect a wallet to submit through the wallet bridge.`);
+    setStatus(`${success} Local mode only. Connect 1AM and approve the transaction to use the wallet bridge.`);
     refresh();
   };
 
@@ -119,6 +129,15 @@ export default function App() {
           <Stat label="Highest revealed bid" value={state.hasWinner ? String(state.highestBid) : "none"} />
           <Stat label="Wallet" value={walletStatus} />
         </div>
+        <div className="winner">
+          <strong>Wallet state:</strong> {walletDetail}
+          {wallet ? (
+            <>
+              <br />
+              <span className="muted">Connected wallet: {wallet.name ?? "unknown"}</span>
+            </>
+          ) : null}
+        </div>
       </section>
 
       <section className="card">
@@ -133,7 +152,7 @@ export default function App() {
           <button disabled={!walletReady} onClick={() => void connectWallet()}>
             Connect 1AM
           </button>
-          <button className="ghost" disabled={!walletReady} onClick={() => void walletManager?.disconnect?.()}>
+          <button className="ghost" disabled={!walletReady || !wallet} onClick={() => void disconnectWallet()}>
             Disconnect Wallet
           </button>
         </div>
