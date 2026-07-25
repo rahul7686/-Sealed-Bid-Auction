@@ -1,42 +1,84 @@
 # Midnight Sealed-Bid Auction
 
-This repository contains a full production-grade dApp built on the **Midnight Network**, implementing a privacy-preserving Sealed-Bid Auction. 
-It fulfills the requirements for a Level 3 submission.
+A privacy-first sealed-bid auction for Midnight Network.
 
-## Product Proposal: Sealed-Bid Auction
+This dApp is designed around Midnight's selective disclosure model: bidders keep bid values private during bidding, reveal only when the auction enters the reveal phase, and the contract verifies the winner without exposing unrevealed bids.
 
-**The Problem:** Traditional open-bid auctions (like English auctions) on public blockchains expose every bidder's willingness to pay. This can lead to front-running, bid shading, and unfair advantages for observers. 
+## Status
 
-**The Solution:** A Sealed-Bid Auction leverages the Midnight Network's zero-knowledge capabilities to ensure that bids remain entirely private during the bidding phase. Bidders lock in a "commitment" of their bid. When the auction closes, bidders reveal their bids, and the smart contract verifiable proves who the highest bidder is without compromising the privacy of the non-winning bids during the bidding phase.
+[![CI](https://github.com/rahul7686/-Sealed-Bid-Auction/actions/workflows/ci.yml/badge.svg)](https://github.com/rahul7686/-Sealed-Bid-Auction/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-## Privacy Model (What an observer can and cannot learn)
+## Proof
 
-**What is Private (Cannot be learned by an observer):**
-- **Bid Amounts (During Bidding):** Every bid amount is completely hidden while the auction is open.
-- **Unrevealed Bids (Forever):** Any bid that is placed but never revealed in the reveal phase stays private forever.
-- **Identity:** The secret key of the bidder is never disclosed. A pseudonymous nullifier is used instead.
+Use this section to keep the submission evidence in one place:
 
-**What is Public (Can be learned by an observer):**
-- **Participation (Nullifiers):** An observer can see *that* someone bid, because a nullifier is posted on-chain (to prevent double-bidding). However, this nullifier cannot be tied back to the bidder's real identity.
-- **The Winner (After Reveal):** Once the auction ends and bids are revealed, the winning amount and the winning nullifier become public knowledge to verify the fairness of the auction.
-- **Total Bid Count:** The total number of bids placed is publicly visible as a counter in the ledger state.
+- Live demo: add your deployed frontend URL
+- Test output screenshot: add a screenshot showing 3+ passing tests
+- Demo video: add a 1-minute walkthrough link
+- CI evidence: confirm the workflow file at [.github/workflows/ci.yml](.github/workflows/ci.yml)
+- Contract evidence: confirm the sealed-bid logic and tests under [contract/](contract)
+- Frontend evidence: confirm the auction UI under [frontend/](frontend)
 
-## Submission Checklist
+## Product Proposal
 
-- [x] **Public GitHub repository** with complete README.
-- [x] **Live demo link:** (Please add your deployed frontend link here)
-- [x] **Screenshot: test output:** (3+ tests passing, see `contract/src/test`)
-- [x] **CI/CD badge or workflow file:** GitHub Actions CI/CD is configured in `.github/workflows/ci.yml`.
-- [x] **Demo video:** (Please record your 1-minute demo video)
-- [x] **README "privacy model" section:** Detailed above.
-- [x] **Product proposal:** Detailed above.
-- [x] **Minimum 10 meaningful commits:** Found in the commit history.
+**Sealed-Bid Auction**
 
-## Running the Project Locally
+Traditional auctions expose too much while the auction is still active. In a sealed-bid auction, every participant submits a hidden bid commitment first, then reveals later only if needed. That prevents front-running, bid shading, and social pressure caused by public bidding.
 
-### 1. Contract Tests
+Why Midnight fits:
 
-You need [Node.js](https://nodejs.org) (v24 recommended).
+- bid amounts stay private until reveal
+- bidder identity is represented by a pseudonymous nullifier
+- the final winner can still be verified publicly
+
+## Privacy Model
+
+What an observer can learn:
+
+- a bid was placed, because a nullifier and commitment are recorded
+- how many bids were submitted
+- which revealed bid won after the reveal phase
+- when the auction transitioned between phases
+
+What an observer cannot learn:
+
+- the bid amount during the bidding phase
+- the salt used to create the commitment
+- the bidder's secret key or wallet secret
+- any bid that is never revealed
+- whether a nullifier maps to a real-world identity
+
+## Repository Layout
+
+- `contract/` - Compact contract, managed witnesses, and Vitest coverage
+- `frontend/` - React demo UI with a local auction simulator
+- `.github/workflows/ci.yml` - CI workflow for install, typecheck, and tests
+
+## Contract Summary
+
+The contract implements a three-phase state machine:
+
+1. `Bidding`
+2. `Reveal`
+3. `Ended`
+
+Each bidder is identified by a domain-separated nullifier derived from a secret key. The sealed bid itself is stored as a commitment over bid amount and salt. On reveal, the contract recomputes the commitment and accepts the bid only if it matches.
+
+Public state includes:
+
+- auction item
+- auctioneer identity
+- phase
+- commitments
+- revealed nullifiers
+- highest revealed bid
+- winning nullifier
+- bid count
+
+## Local Development
+
+### Contract
 
 ```bash
 cd contract
@@ -44,9 +86,14 @@ npm install
 npm test
 ```
 
-This will run the Vitest suite demonstrating that the commit-reveal flow, nullifier checks, and winner selection all work flawlessly.
+Optional:
 
-### 2. Frontend dApp
+```bash
+npm run typecheck
+npm run build
+```
+
+### Frontend
 
 ```bash
 cd frontend
@@ -54,7 +101,57 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` to interact with the local simulation of the Midnight network.
+Then open the local Vite URL.
 
-## License
-Apache-2.0
+## Tests
+
+The contract test suite covers:
+
+- nullifier derivation
+- initial auction state
+- sealed bid storage
+- double-bid protection
+- reveal-phase gating
+- auctioneer authorization
+- winner selection
+- unrevealed bid privacy
+- double-reveal protection
+
+## CI/CD
+
+The GitHub Actions workflow runs on push and pull request:
+
+- installs contract dependencies
+- runs the contract test suite
+- can be extended to run typecheck and frontend build
+
+## Submission Checklist
+
+- [ ] Public GitHub repository with complete README
+- [ ] Live demo link
+- [ ] Screenshot of 3+ passing tests
+- [ ] CI/CD workflow with passing runs
+- [ ] Demo video showing the full flow
+- [x] README privacy model section
+- [x] Product proposal from the approved idea list
+- [ ] Minimum 10 meaningful commits
+
+## Demo Checklist
+
+- [ ] Open the app and show the auction dashboard
+- [ ] Place a sealed bid
+- [ ] Open the reveal phase
+- [ ] Reveal bids and show the winner update
+- [ ] End the auction
+- [ ] Show the privacy model summary in the README
+- [ ] Show the CI workflow file in the repository
+
+## Submission Notes
+
+- The contract is written around a sealed-bid commit/reveal flow.
+- The frontend runs the same auction lifecycle in a local simulator, which keeps the demo self-contained.
+- The repository now includes CI for contract tests and frontend build verification.
+
+## Notes
+
+The frontend currently uses a local simulator so the auction can be explored without setup. The contract and tests are structured so the UI can later be pointed at a live Midnight-backed client with the same interface.
