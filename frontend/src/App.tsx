@@ -53,7 +53,10 @@ export default function App() {
       try {
         const kit = await import("midnight-wallet-kit");
         if (!mounted) return;
-        const manager = kit.createMidnightWalletManager({ network: "preprod" }) as unknown as WalletManagerLike;
+        const manager = kit.createMidnightWalletManager({
+          network: "preprod",
+          only: ["1AM"]
+        }) as unknown as WalletManagerLike;
         setWalletManager(manager);
         setWalletReady(true);
         setWalletStatus("Ready to connect wallet");
@@ -80,10 +83,17 @@ export default function App() {
     if (!walletManager) {
       throw new Error("Wallet kit is not available in this build.");
     }
-    const active = await connect1AM(walletManager);
-    setWallet(active);
-    setWalletStatus(active.name ? `${active.name} connected` : "Wallet connected");
-    setWalletDetail("Active wallet object captured");
+    try {
+      const active = await connect1AM(walletManager);
+      setWallet(active);
+      setWalletStatus(active.name ? `${active.name} connected` : "Wallet connected");
+      setWalletDetail("Active wallet object captured");
+    } catch (cause) {
+      setWallet(null);
+      setWalletStatus("Connection failed");
+      setWalletDetail("No active wallet captured");
+      throw cause;
+    }
   };
 
   const disconnectWallet = async () => {
@@ -152,7 +162,7 @@ export default function App() {
           <button disabled={!walletReady} onClick={() => void connectWallet()}>
             Connect 1AM
           </button>
-          <button className="ghost" disabled={!walletReady || !wallet} onClick={() => void disconnectWallet()}>
+          <button className="ghost" disabled={!walletReady} onClick={() => void disconnectWallet()}>
             Disconnect Wallet
           </button>
         </div>

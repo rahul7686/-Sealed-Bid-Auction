@@ -9,16 +9,13 @@ export type MidnightWalletLike = {
 };
 
 export type WalletManagerLike = {
-  connectWithFallback?: (wallets: string[]) => Promise<void>;
   connect?: (wallet: string) => Promise<void>;
   disconnect?: () => Promise<void> | void;
   getActiveWallet?: () => MidnightWalletLike | null;
 };
 
 export async function connect1AM(manager: WalletManagerLike): Promise<MidnightWalletLike> {
-  if (manager.connectWithFallback) {
-    await manager.connectWithFallback(["1AM"]);
-  } else if (manager.connect) {
+  if (manager.connect) {
     await manager.connect("1AM");
   } else {
     throw new Error("Wallet manager does not expose a connect method");
