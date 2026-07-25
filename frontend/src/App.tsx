@@ -83,12 +83,6 @@ export default function App() {
     setWalletStatus(active.name ? `${active.name} connected` : "Wallet connected");
   };
 
-  const disconnectWallet = async () => {
-    await walletManager?.disconnect?.();
-    setWallet(null);
-    setWalletStatus("Disconnected");
-  };
-
   const submitAuctionAction = async (
     action: "placeSealedBid" | "revealBid" | "openRevealPhase" | "endAuction",
     payload: Record<string, unknown>,
@@ -131,16 +125,13 @@ export default function App() {
         <div className="section-heading">
           <div>
             <p className="eyebrow">Wallet</p>
-            <h2>Connect wallet for web3 transactions</h2>
+            <h2>Connect 1AM for web3 transactions</h2>
           </div>
         </div>
 
         <div className="button-row">
           <button disabled={!walletReady} onClick={() => void connectWallet()}>
-            Connect Wallet
-          </button>
-          <button className="ghost" disabled={!walletReady} onClick={() => void disconnectWallet()}>
-            Disconnect Wallet
+            Connect 1AM
           </button>
         </div>
 
