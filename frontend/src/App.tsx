@@ -55,7 +55,7 @@ export default function App() {
         const manager = kit.createMidnightWalletManager({ network: "preprod" }) as unknown as WalletManagerLike;
         setWalletManager(manager);
         setWalletReady(true);
-        setWalletStatus("Ready to connect 1AM");
+        setWalletStatus("Ready to connect wallet");
       } catch {
         if (!mounted) return;
         setWalletReady(false);
@@ -76,11 +76,11 @@ export default function App() {
 
   const connectWallet = async () => {
     if (!walletManager) {
-      throw new Error("1AM wallet kit is not available in this build.");
+      throw new Error("Wallet kit is not available in this build.");
     }
     const active = await connect1AM(walletManager);
     setWallet(active);
-    setWalletStatus(active.name ? `${active.name} connected` : "1AM connected");
+    setWalletStatus(active.name ? `${active.name} connected` : "Wallet connected");
   };
 
   const disconnectWallet = async () => {
@@ -103,7 +103,7 @@ export default function App() {
       return;
     }
     await fallback();
-    setStatus(`${success} Local mode only. Connect 1AM to submit through wallet.`);
+    setStatus(`${success} Local mode only. Connect a wallet to submit through the wallet bridge.`);
     refresh();
   };
 
@@ -131,13 +131,13 @@ export default function App() {
         <div className="section-heading">
           <div>
             <p className="eyebrow">Wallet</p>
-            <h2>Connect 1AM for web3 transactions</h2>
+            <h2>Connect wallet for web3 transactions</h2>
           </div>
         </div>
 
         <div className="button-row">
           <button disabled={!walletReady} onClick={() => void connectWallet()}>
-            Connect 1AM Wallet
+            Connect Wallet
           </button>
           <button className="ghost" disabled={!walletReady} onClick={() => void disconnectWallet()}>
             Disconnect Wallet
@@ -145,7 +145,7 @@ export default function App() {
         </div>
 
         <p className="muted">
-          When connected, action buttons route through the wallet bridge so 1AM can sign or
+          When connected, action buttons route through the wallet bridge so the wallet can sign or
           submit the transaction payload. Local simulation still works if the wallet kit is absent.
         </p>
       </section>
