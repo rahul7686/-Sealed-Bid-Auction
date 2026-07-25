@@ -14,14 +14,24 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+type WalletManager = {
+  connectWithFallback: (wallets: string[]) => Promise<void>;
+  getActiveWallet?: () => { name?: string } | null;
+  connect?: (wallet: string) => Promise<void>;
+  disconnect?: () => Promise<void> | void;
+};
+
 export default function App() {
   const client = useMemo<AuctionClient>(() => new LocalAuctionClient(), []);
   const [state, setState] = useState<AuctionPublicState | null>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [walletStatus, setWalletStatus] = useState("Disconnected");
   const [item, setItem] = useState("Rare painting: Midnight over Nassau");
   const [bidder, setBidder] = useState("alice");
   const [amount, setAmount] = useState("100");
+  const [walletReady, setWalletReady] = useState(false);
+  const [walletManager, setWalletManager] = useState<WalletManager | null>(null);
 
   const refresh = () => setState({ ...client.getState() });
 
@@ -41,12 +51,51 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    void (async () => {
+      try {
+        const kit = await import("midnight-wallet-kit");
+        if (!mounted) return;
+        const manager = kit.createMidnightWalletManager({ network: "preprod" }) as WalletManager;
+        setWalletManager(manager);
+        setWalletReady(true);
+        setWalletStatus("Ready to connect 1AM");
+      } catch {
+        if (!mounted) return;
+        setWalletReady(false);
+        setWalletStatus("midnight-wallet-kit not installed");
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   if (!state) {
     return <div className="shell">Loading auction state...</div>;
   }
 
   const canBid = state.phase === Phase.Bidding && bidder.length > 0 && amount.length > 0;
   const canReveal = state.phase === Phase.Reveal && bidder.length > 0;
+
+  const connect1AM = async () => {
+    if (!walletManager) {
+      throw new Error("1AM wallet kit is not available in this build.");
+    }
+    if (walletManager.connectWithFallback) {
+      await walletManager.connectWithFallback(["1AM"]);
+    } else if (walletManager.connect) {
+      await walletManager.connect("1AM");
+    }
+    const active = walletManager.getActiveWallet?.();
+    setWalletStatus(active?.name ? `${active.name} connected` : "1AM connected");
+  };
+
+  const disconnectWallet = async () => {
+    await walletManager?.disconnect?.();
+    setWalletStatus("Disconnected");
+  };
 
   return (
     <main className="shell">
@@ -64,8 +113,31 @@ export default function App() {
           <Stat label="Phase" value={phaseLabel(state.phase)} />
           <Stat label="Bid count" value={String(state.bidCount)} />
           <Stat label="Highest revealed bid" value={state.hasWinner ? String(state.highestBid) : "none"} />
-          <Stat label="Auctioneer" value={formatShort(state.auctioneer)} />
+          <Stat label="Wallet" value={walletStatus} />
         </div>
+      </section>
+
+      <section className="card">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Wallet</p>
+            <h2>Connect 1AM for web3 transactions</h2>
+          </div>
+        </div>
+
+        <div className="button-row">
+          <button disabled={!walletReady} onClick={() => void connect1AM()}>
+            Connect 1AM Wallet
+          </button>
+          <button className="ghost" disabled={!walletReady} onClick={() => void disconnectWallet()}>
+            Disconnect Wallet
+          </button>
+        </div>
+
+        <p className="muted">
+          This build now has a wallet integration entry point. When the Midnight wallet kit is
+          installed, the app can connect to 1AM through the standard DApp connector flow.
+        </p>
       </section>
 
       <section className="card">
@@ -74,10 +146,7 @@ export default function App() {
             <p className="eyebrow">Auction control</p>
             <h2>Deploy and advance the auction</h2>
           </div>
-          <button
-            className="ghost"
-            onClick={() => run("Auction reset.", () => client.deploy(item, AUCTIONEER))}
-          >
+          <button className="ghost" onClick={() => run("Auction reset.", () => client.deploy(item, AUCTIONEER))}>
             Reset auction
           </button>
         </div>
