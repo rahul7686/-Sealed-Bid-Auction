@@ -52,7 +52,7 @@ export default function App() {
       try {
         const kit = await import("midnight-wallet-kit");
         if (!mounted) return;
-        const manager = kit.createMidnightWalletManager({ network: "preprod" }) as WalletManagerLike;
+        const manager = kit.createMidnightWalletManager({ network: "preprod" }) as unknown as WalletManagerLike;
         setWalletManager(manager);
         setWalletReady(true);
         setWalletStatus("Ready to connect 1AM");

@@ -1,7 +1,7 @@
 export type MidnightWalletLike = {
   name?: string;
   signData?: (data: string) => Promise<unknown>;
-  submitTransaction?: (tx: string) => Promise<void>;
+  submitTransaction?: (tx: string) => Promise<string>;
   balanceUnsealedTransaction?: (tx: string, options?: unknown) => Promise<{ tx: string }>;
   balanceSealedTransaction?: (tx: string, options?: unknown) => Promise<{ tx: string }>;
   makeTransfer?: (desiredOutputs: unknown[], options?: unknown) => Promise<{ tx: string }>;
