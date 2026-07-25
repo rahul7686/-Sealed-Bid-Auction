@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { LocalAuctionClient } from "./auction/localClient";
 import { AuctionClient, AuctionPublicState, Phase, phaseLabel } from "./auction/types";
+import { connect1AM, submitWalletAction, type MidnightWalletLike, type WalletManagerLike } from "./auction/walletBridge";
 
 const AUCTIONEER = "auctioneer";
 const formatShort = (hex: string) => (hex ? `${hex.slice(0, 10)}...` : "-");
@@ -14,13 +15,6 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-type WalletManager = {
-  connectWithFallback: (wallets: string[]) => Promise<void>;
-  getActiveWallet?: () => { name?: string } | null;
-  connect?: (wallet: string) => Promise<void>;
-  disconnect?: () => Promise<void> | void;
-};
-
 export default function App() {
   const client = useMemo<AuctionClient>(() => new LocalAuctionClient(), []);
   const [state, setState] = useState<AuctionPublicState | null>(null);
@@ -31,7 +25,8 @@ export default function App() {
   const [bidder, setBidder] = useState("alice");
   const [amount, setAmount] = useState("100");
   const [walletReady, setWalletReady] = useState(false);
-  const [walletManager, setWalletManager] = useState<WalletManager | null>(null);
+  const [walletManager, setWalletManager] = useState<WalletManagerLike | null>(null);
+  const [wallet, setWallet] = useState<MidnightWalletLike | null>(null);
 
   const refresh = () => setState({ ...client.getState() });
 
@@ -57,7 +52,7 @@ export default function App() {
       try {
         const kit = await import("midnight-wallet-kit");
         if (!mounted) return;
-        const manager = kit.createMidnightWalletManager({ network: "preprod" }) as WalletManager;
+        const manager = kit.createMidnightWalletManager({ network: "preprod" }) as WalletManagerLike;
         setWalletManager(manager);
         setWalletReady(true);
         setWalletStatus("Ready to connect 1AM");
@@ -79,22 +74,37 @@ export default function App() {
   const canBid = state.phase === Phase.Bidding && bidder.length > 0 && amount.length > 0;
   const canReveal = state.phase === Phase.Reveal && bidder.length > 0;
 
-  const connect1AM = async () => {
+  const connectWallet = async () => {
     if (!walletManager) {
       throw new Error("1AM wallet kit is not available in this build.");
     }
-    if (walletManager.connectWithFallback) {
-      await walletManager.connectWithFallback(["1AM"]);
-    } else if (walletManager.connect) {
-      await walletManager.connect("1AM");
-    }
-    const active = walletManager.getActiveWallet?.();
-    setWalletStatus(active?.name ? `${active.name} connected` : "1AM connected");
+    const active = await connect1AM(walletManager);
+    setWallet(active);
+    setWalletStatus(active.name ? `${active.name} connected` : "1AM connected");
   };
 
   const disconnectWallet = async () => {
     await walletManager?.disconnect?.();
+    setWallet(null);
     setWalletStatus("Disconnected");
+  };
+
+  const submitAuctionAction = async (
+    action: "placeSealedBid" | "revealBid" | "openRevealPhase" | "endAuction",
+    payload: Record<string, unknown>,
+    fallback: () => Promise<void>,
+    success: string
+  ) => {
+    if (wallet) {
+      const tx = await submitWalletAction(wallet, action, payload);
+      setStatus(`${success} Wallet tx: ${formatShort(tx)}`);
+      await fallback();
+      refresh();
+      return;
+    }
+    await fallback();
+    setStatus(`${success} Local mode only. Connect 1AM to submit through wallet.`);
+    refresh();
   };
 
   return (
@@ -126,7 +136,7 @@ export default function App() {
         </div>
 
         <div className="button-row">
-          <button disabled={!walletReady} onClick={() => void connect1AM()}>
+          <button disabled={!walletReady} onClick={() => void connectWallet()}>
             Connect 1AM Wallet
           </button>
           <button className="ghost" disabled={!walletReady} onClick={() => void disconnectWallet()}>
@@ -135,8 +145,8 @@ export default function App() {
         </div>
 
         <p className="muted">
-          This build now has a wallet integration entry point. When the Midnight wallet kit is
-          installed, the app can connect to 1AM through the standard DApp connector flow.
+          When connected, action buttons route through the wallet bridge so 1AM can sign or
+          submit the transaction payload. Local simulation still works if the wallet kit is absent.
         </p>
       </section>
 
@@ -173,14 +183,28 @@ export default function App() {
         <div className="button-row">
           <button
             disabled={state.phase !== Phase.Bidding}
-            onClick={() => run("Reveal phase opened.", () => client.openRevealPhase(AUCTIONEER))}
+            onClick={() =>
+              void submitAuctionAction(
+                "openRevealPhase",
+                { item, phase: "bidding" },
+                () => client.openRevealPhase(AUCTIONEER),
+                "Reveal phase opened."
+              )
+            }
           >
             Open reveal phase
           </button>
           <button
             className="ghost"
             disabled={state.phase !== Phase.Reveal}
-            onClick={() => run("Auction ended.", () => client.endAuction(AUCTIONEER))}
+            onClick={() =>
+              void submitAuctionAction(
+                "endAuction",
+                { item, phase: "reveal" },
+                () => client.endAuction(AUCTIONEER),
+                "Auction ended."
+              )
+            }
           >
             End auction
           </button>
@@ -198,14 +222,28 @@ export default function App() {
         <div className="button-row">
           <button
             disabled={!canBid}
-            onClick={() => run(`${bidder} placed a sealed bid.`, () => client.placeSealedBid(bidder, BigInt(amount || "0")))}
+            onClick={() =>
+              void submitAuctionAction(
+                "placeSealedBid",
+                { bidder, amount },
+                () => client.placeSealedBid(bidder, BigInt(amount || "0")),
+                `${bidder} placed a sealed bid.`
+              )
+            }
           >
             Place sealed bid
           </button>
           <button
             className="ghost"
             disabled={!canReveal}
-            onClick={() => run(`${bidder} revealed their bid.`, () => client.revealBid(bidder))}
+            onClick={() =>
+              void submitAuctionAction(
+                "revealBid",
+                { bidder },
+                () => client.revealBid(bidder),
+                `${bidder} revealed their bid.`
+              )
+            }
           >
             Reveal bid
           </button>
