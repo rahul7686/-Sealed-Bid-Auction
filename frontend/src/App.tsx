@@ -22,6 +22,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [walletStatus, setWalletStatus] = useState("Disconnected");
   const [walletDetail, setWalletDetail] = useState("No wallet connected");
+  const [walletError, setWalletError] = useState("");
   const [item, setItem] = useState("Rare painting: Midnight over Nassau");
   const [bidder, setBidder] = useState("alice");
   const [amount, setAmount] = useState("100");
@@ -61,10 +62,12 @@ export default function App() {
         setWalletReady(true);
         setWalletStatus("Ready to connect wallet");
         setWalletDetail("Wallet manager loaded");
+        setWalletError("");
       } catch {
         if (!mounted) return;
         setWalletReady(false);
         setWalletStatus("midnight-wallet-kit not installed");
+        setWalletError("Wallet kit import failed");
       }
     })();
     return () => {
@@ -87,11 +90,13 @@ export default function App() {
       const active = await connect1AM(walletManager);
       setWallet(active);
       setWalletStatus(active.name ? `${active.name} connected` : "Wallet connected");
-      setWalletDetail("Active wallet object captured");
+      setWalletDetail(`Active wallet object captured: ${active.name ?? "unknown"}`);
+      setWalletError("");
     } catch (cause) {
       setWallet(null);
       setWalletStatus("Connection failed");
       setWalletDetail("No active wallet captured");
+      setWalletError(cause instanceof Error ? cause.message : String(cause));
       throw cause;
     }
   };
@@ -145,6 +150,12 @@ export default function App() {
             <>
               <br />
               <span className="muted">Connected wallet: {wallet.name ?? "unknown"}</span>
+            </>
+          ) : null}
+          {walletError ? (
+            <>
+              <br />
+              <span className="error">Connect error: {walletError}</span>
             </>
           ) : null}
         </div>
