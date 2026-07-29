@@ -184,7 +184,7 @@ describe("Sealed-Bid Auction (commit-reveal, nullifiers)", () => {
     }).toThrow("no sealed bid found");
   });
 
-  it("picks the highest revealed bid as the winner", () => {
+  it("picks the highest revealed bid as the winner regardless of reveal order", () => {
     const sim = newAuction();
     sim.as("alice").placeSealedBid();
     sim.as("bob").placeSealedBid();
@@ -204,6 +204,22 @@ describe("Sealed-Bid Auction (commit-reveal, nullifiers)", () => {
     expect(utils.bytesEqual(l.highestBidder, carolNf)).toEqual(true);
 
     l = sim.as("bob").revealBid(); // 250 -> final winner
+    expect(l.highestBid).toEqual(BOB_BID);
+    expect(utils.bytesEqual(l.highestBidder, bobNf)).toEqual(true);
+  });
+
+  it("keeps the highest bidder as winner even if the highest bid is revealed last", () => {
+    const sim = newAuction();
+    sim.as("alice").placeSealedBid();
+    sim.as("bob").placeSealedBid();
+    sim.as("carol").placeSealedBid();
+
+    sim.as("auctioneer").openRevealPhase();
+
+    sim.as("alice").revealBid(); // 100
+    sim.as("carol").revealBid(); // 175
+    const l = sim.as("bob").revealBid(); // 250, highest wins even though revealed last
+
     expect(l.highestBid).toEqual(BOB_BID);
     expect(utils.bytesEqual(l.highestBidder, bobNf)).toEqual(true);
   });

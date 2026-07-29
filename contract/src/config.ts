@@ -11,6 +11,12 @@ export interface Config {
 }
 
 export class LogicTestingConfig implements Config {
-  logDir = path.resolve(currentDir, '..', 'logs', 'logic-testing', `${new Date().toISOString()}.log`);
+  logDir = path.resolve(
+    currentDir,
+    '..',
+    'logs',
+    'logic-testing',
+    `${new Date().toISOString().replace(/[:]/g, '-')}.log`
+  );
   constructor() {}
 }

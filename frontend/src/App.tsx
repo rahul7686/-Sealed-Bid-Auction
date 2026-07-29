@@ -149,7 +149,16 @@ function DeployPage() {
 }
 
 export default function App() {
-  if (window.location.pathname === "/deploy") {
+  const [pathname, setPathname] = useState(() => window.location.pathname);
+
+  useEffect(() => {
+    const onPopState = () => setPathname(window.location.pathname);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const isDeployPage = pathname === "/deploy";
+  if (isDeployPage) {
     return <DeployPage />;
   }
 
@@ -349,7 +358,15 @@ export default function App() {
         <a className="history-link" href="#transaction-history">
           View transaction history
         </a>
-        <a className="history-link" href="/deploy">
+        <a
+          className="history-link"
+          href="/deploy"
+          onClick={(event) => {
+            event.preventDefault();
+            window.history.pushState({}, "", "/deploy");
+            setPathname("/deploy");
+          }}
+        >
           Open browser deploy
         </a>
       </section>

@@ -177,8 +177,9 @@ export circuit endAuction(): [] {
 
 // Reveal a previously sealed bid. The contract recomputes the commitment from
 // the revealed amount + salt and checks it matches what was stored. A valid
-// reveal that beats the current best becomes the new highest bid. The revealed
-// amount becomes public; un-revealed bids stay private forever.
+// reveal that beats the current best becomes the new highest bid, so the
+// winner is always the highest revealed bidder regardless of reveal order.
+// The revealed amount becomes public; un-revealed bids stay private forever.
 export circuit revealBid(): [] {
   assert(phase == 1, "SealedBidAuction: not in the reveal phase");
   const nf = callerNullifier();
