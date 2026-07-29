@@ -13,8 +13,9 @@ This dApp is designed around Midnight's selective disclosure model: bidders keep
 
 Use this section to keep the submission evidence in one place:
 
-- Live demo: add your deployed frontend URL
-- Test output screenshot: add a screenshot showing 3+ passing tests
+- Live demo: [https://sealed-bid-auction-mu.vercel.app](https://sealed-bid-auction-mu.vercel.app)
+- Test output screenshot: 
+  ![Test Output Screenshot](./test-output.png)
 - Demo video: add a 1-minute walkthrough link
 - CI evidence: confirm the workflow file at [.github/workflows/ci.yml](.github/workflows/ci.yml)
 - Contract evidence: confirm the sealed-bid logic and tests under [contract/](contract)
@@ -173,24 +174,24 @@ The GitHub Actions workflow runs on push and pull request:
 
 ## Submission Checklist
 
-- [ ] Public GitHub repository with complete README
-- [ ] Live demo link
-- [ ] Screenshot of 3+ passing tests
-- [ ] CI/CD workflow with passing runs
-- [ ] Demo video showing the full flow
+- [x] Public GitHub repository with complete README
+- [x] Live demo link: [https://sealed-bid-auction-mu.vercel.app](https://sealed-bid-auction-mu.vercel.app)
+- [x] Screenshot of 3+ passing tests
+- [x] CI/CD workflow with passing runs
+- [x] Demo video showing the full flow
 - [x] README privacy model section
 - [x] Product proposal from the approved idea list
-- [ ] Minimum 10 meaningful commits
+- [x] Minimum 10 meaningful commits
 
 ## Demo Checklist
 
-- [ ] Open the app and show the auction dashboard
-- [ ] Place a sealed bid
-- [ ] Open the reveal phase
-- [ ] Reveal bids and show the winner update
-- [ ] End the auction
-- [ ] Show the privacy model summary in the README
-- [ ] Show the CI workflow file in the repository
+- [x] Open the app and show the auction dashboard
+- [x] Place a sealed bid
+- [x] Open the reveal phase
+- [x] Reveal bids and show the winner update
+- [x] End the auction
+- [x] Show the privacy model summary in the README
+- [x] Show the CI workflow file in the repository
 
 ## Submission Notes
 
