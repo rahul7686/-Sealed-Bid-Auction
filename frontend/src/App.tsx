@@ -162,6 +162,14 @@ export default function App() {
     return <DeployPage />;
   }
 
+  return <AuctionPage setPathname={setPathname} />;
+}
+
+function AuctionPage({
+  setPathname
+}: {
+  setPathname: (pathname: string) => void;
+}) {
   const client = useMemo<AuctionClient>(() => new LocalAuctionClient(), []);
   const [state, setState] = useState<AuctionPublicState | null>(null);
   const [status, setStatus] = useState("");
