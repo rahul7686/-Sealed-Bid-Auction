@@ -4,7 +4,15 @@ import { AuctionClient, AuctionPublicState, Phase, phaseLabel } from "./auction/
 import { connect1AM, submitWalletAction, type MidnightWalletLike, type WalletManagerLike } from "./auction/walletBridge";
 
 const AUCTIONEER = "auctioneer";
+const HISTORY_STORAGE_KEY = "midnight-auction-history";
+const PREVIEW_CONTRACT_ID = import.meta.env.VITE_PREVIEW_CONTRACT_ID ?? "";
 const formatShort = (hex: string) => (hex ? `${hex.slice(0, 10)}...` : "-");
+
+type HistoryEntry = {
+  id: string;
+  timestamp: string;
+  message: string;
+};
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -20,6 +28,7 @@ export default function App() {
   const [state, setState] = useState<AuctionPublicState | null>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [walletStatus, setWalletStatus] = useState("Disconnected");
   const [walletDetail, setWalletDetail] = useState("No wallet connected");
   const [walletError, setWalletError] = useState("");
@@ -32,14 +41,52 @@ export default function App() {
 
   const refresh = () => setState({ ...client.getState() });
 
+  const pushHistory = (message: string) => {
+    const entry: HistoryEntry = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+      timestamp: new Date().toLocaleTimeString(),
+      message
+    };
+    setHistory((current) => [entry, ...current].slice(0, 12));
+  };
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(HISTORY_STORAGE_KEY);
+      if (!stored) return;
+      const parsed = JSON.parse(stored) as HistoryEntry[];
+      if (Array.isArray(parsed)) {
+        setHistory(
+          parsed
+            .filter(
+              (entry): entry is HistoryEntry =>
+                typeof entry?.id === "string" &&
+                typeof entry?.timestamp === "string" &&
+                typeof entry?.message === "string"
+            )
+            .slice(0, 12)
+        );
+      }
+    } catch {
+      // Ignore malformed local history and start fresh.
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+  }, [history]);
+
   const run = async (message: string, action: () => Promise<void>) => {
     setError("");
     try {
       await action();
       setStatus(message);
+      pushHistory(message);
       refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      const messageText = cause instanceof Error ? cause.message : String(cause);
+      setError(messageText);
+      pushHistory(`error: ${messageText}`);
     }
   };
 
@@ -63,11 +110,13 @@ export default function App() {
         setWalletStatus("Ready to connect wallet");
         setWalletDetail("Wallet manager loaded");
         setWalletError("");
+        pushHistory("wallet manager loaded");
       } catch {
         if (!mounted) return;
         setWalletReady(false);
         setWalletStatus("midnight-wallet-kit not installed");
         setWalletError("Wallet kit import failed");
+        pushHistory("wallet kit import failed");
       }
     })();
     return () => {
@@ -92,11 +141,13 @@ export default function App() {
       setWalletStatus(active.name ? `${active.name} connected` : "Wallet connected");
       setWalletDetail(`Active wallet object captured: ${active.name ?? "unknown"}`);
       setWalletError("");
+      pushHistory(`wallet connected: ${active.name ?? "unknown"}`);
     } catch (cause) {
       setWallet(null);
       setWalletStatus("Connection failed");
       setWalletDetail("No active wallet captured");
       setWalletError(cause instanceof Error ? cause.message : String(cause));
+      pushHistory("wallet connect failed");
       throw cause;
     }
   };
@@ -106,6 +157,7 @@ export default function App() {
     setWallet(null);
     setWalletStatus("Disconnected");
     setWalletDetail("Wallet disconnected");
+    pushHistory("wallet disconnected");
   };
 
   const submitAuctionAction = async (
@@ -117,12 +169,14 @@ export default function App() {
     if (wallet) {
       const tx = await submitWalletAction(wallet, action, payload);
       setStatus(`${success} Wallet tx submitted: ${formatShort(tx)}`);
+      pushHistory(`wallet tx submitted: ${action} ${formatShort(tx)}`);
       await fallback();
       refresh();
       return;
     }
     await fallback();
     setStatus(`${success} Local mode only. Connect 1AM and approve the transaction to use the wallet bridge.`);
+    pushHistory(`local fallback used: ${action}`);
     refresh();
   };
 
@@ -131,10 +185,10 @@ export default function App() {
       <section className="hero card">
         <div>
           <p className="eyebrow">Midnight sealed-bid auction</p>
-          <h1>Private bids. Verifiable winner.</h1>
+          <h1>Private bids. Highest bidder wins.</h1>
           <p className="lede">
             Bidders commit privately, reveal only in the reveal phase, and the contract
-            records a winner without exposing unrevealed bids.
+            records the highest revealed bidder without exposing unrevealed bids.
           </p>
         </div>
 
@@ -143,6 +197,10 @@ export default function App() {
           <Stat label="Bid count" value={String(state.bidCount)} />
           <Stat label="Highest revealed bid" value={state.hasWinner ? String(state.highestBid) : "none"} />
           <Stat label="Wallet" value={walletStatus} />
+          <Stat
+            label="Preview contract ID"
+            value={PREVIEW_CONTRACT_ID ? formatShort(PREVIEW_CONTRACT_ID) : "not set"}
+          />
         </div>
         <div className="winner">
           <strong>Wallet state:</strong> {walletDetail}
@@ -159,6 +217,9 @@ export default function App() {
             </>
           ) : null}
         </div>
+        <a className="history-link" href="#transaction-history">
+          View transaction history
+        </a>
       </section>
 
       <section className="card">
@@ -332,12 +393,44 @@ export default function App() {
         <div className="winner">
           {state.hasWinner ? (
             <>
-              <strong>Winning bid:</strong> {state.highestBid.toString()} by{" "}
+              <strong>Winning bidder:</strong> {state.highestBid.toString()} by{" "}
               <span className="mono">{formatShort(state.highestNullifier ?? "")}</span>
               {state.phase === Phase.Ended ? " - final" : ""}
             </>
           ) : (
-            <span className="muted">No revealed winner yet.</span>
+            <span className="muted">No revealed winning bidder yet.</span>
+          )}
+        </div>
+      </section>
+
+      <section className="card" id="transaction-history">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">History</p>
+            <h2>Transaction history</h2>
+          </div>
+        </div>
+
+        <button
+          className="ghost history-clear"
+          onClick={() => {
+            setHistory([]);
+            window.localStorage.removeItem(HISTORY_STORAGE_KEY);
+          }}
+        >
+          Clear history
+        </button>
+
+        <div className="history">
+          {history.length === 0 ? (
+            <p className="muted">No activity yet.</p>
+          ) : (
+            history.map((entry) => (
+              <div key={entry.id} className="history-item">
+                <span className="history-time">{entry.timestamp}</span>
+                <span>{entry.message}</span>
+              </div>
+            ))
           )}
         </div>
       </section>

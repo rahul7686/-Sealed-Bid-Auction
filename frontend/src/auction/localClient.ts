@@ -93,6 +93,23 @@ export class LocalAuctionClient implements AuctionClient {
   // Private state kept per participant name (never surfaced publicly).
   private participants = new Map<string, Participant>();
 
+  private refreshWinnerFromRevealedBids(): void {
+    let winnerBid = 0n;
+    let winnerNullifier: string | null = null;
+
+    for (const record of this.records) {
+      if (!record.revealed || record.amount === null) continue;
+      if (record.amount > winnerBid) {
+        winnerBid = record.amount;
+        winnerNullifier = record.nullifier;
+      }
+    }
+
+    this.highestBid = winnerBid;
+    this.highestNullifier = winnerNullifier;
+    this.hasWinner = winnerNullifier !== null;
+  }
+
   private ensure(name: string): Participant {
     let p = this.participants.get(name);
     if (!p) {
@@ -178,17 +195,14 @@ export class LocalAuctionClient implements AuctionClient {
 
     record.revealed = true;
     record.amount = p.amount;
-    if (p.amount > this.highestBid) {
-      this.highestBid = p.amount;
-      this.highestNullifier = nf;
-      this.hasWinner = true;
-    }
+    this.refreshWinnerFromRevealedBids();
   }
 
   async endAuction(callerName: string): Promise<void> {
     const id = await this.identityOf(callerName);
     if (id !== this.auctioneer) throw new Error("caller is not the auctioneer");
     if (this.phase !== Phase.Reveal) throw new Error("can only end from the reveal phase");
+    this.refreshWinnerFromRevealedBids();
     this.phase = Phase.Ended;
   }
 

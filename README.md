@@ -103,6 +103,14 @@ npm run dev
 
 Then open the local Vite URL.
 
+If you are previewing a deployed contract, add a `frontend/.env` file with:
+
+```bash
+VITE_PREVIEW_CONTRACT_ID=0xYOUR_PREVIEW_CONTRACT_ID_HERE
+```
+
+The app will show that value in the hero section as the preview contract ID.
+
 ## Tests
 
 The contract test suite covers:

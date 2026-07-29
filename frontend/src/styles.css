@@ -185,6 +185,22 @@ button.ghost {
   border: 1px solid var(--line);
 }
 
+.history-link {
+  display: inline-flex;
+  margin-top: 18px;
+  color: var(--accent-2);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.history-link:hover {
+  text-decoration: underline;
+}
+
+.history-clear {
+  margin-bottom: 14px;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -238,6 +254,31 @@ th {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.history {
+  display: grid;
+  gap: 10px;
+  max-height: 320px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.history-item {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.history-time {
+  color: var(--accent-2);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .footer {
   color: var(--muted);
 }
@@ -276,4 +317,3 @@ code {
     flex-direction: column;
   }
 }
-
