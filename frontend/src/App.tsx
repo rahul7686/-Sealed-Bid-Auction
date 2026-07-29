@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { LocalAuctionClient } from "./auction/localClient";
+import { connectPreview1AM, deployPreviewContract, type BrowserDeployResult } from "./auction/browserDeploy";
 import { AuctionClient, AuctionPublicState, Phase, phaseLabel } from "./auction/types";
 import { connect1AM, submitWalletAction, type MidnightWalletLike, type WalletManagerLike } from "./auction/walletBridge";
 
@@ -23,7 +24,135 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function DeployPage() {
+  const [status, setStatus] = useState("Connect 1AM on preview to deploy.");
+  const [error, setError] = useState("");
+  const [walletStatus, setWalletStatus] = useState("Disconnected");
+  const [walletDetail, setWalletDetail] = useState("No preview wallet connected");
+  const [contractName, setContractName] = useState("SealedBidAuction");
+  const [deployed, setDeployed] = useState<BrowserDeployResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [adapter, setAdapter] = useState<Awaited<ReturnType<typeof connectPreview1AM>> | null>(null);
+
+  const connectWallet = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      const active = await connectPreview1AM();
+      setAdapter(active);
+      setWalletStatus("1AM connected");
+      setWalletDetail("Preview network ready");
+      setStatus("Connected to 1AM on preview.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      setWalletStatus("Connection failed");
+      setWalletDetail("Unable to connect to 1AM");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deploy = async () => {
+    if (!adapter) {
+      setError("Connect 1AM first.");
+      return;
+    }
+    setError("");
+    setBusy(true);
+    try {
+      const result = await deployPreviewContract(adapter, contractName.trim() || "SealedBidAuction");
+      setDeployed(result);
+      setStatus("Contract deployed through 1AM preview.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <main className="shell">
+      <section className="hero card">
+        <div>
+          <p className="eyebrow">Preview deploy</p>
+          <h1>Deploy from the browser.</h1>
+          <p className="lede">
+            Connect 1AM on Midnight preview, deploy directly from the wallet extension, and show the
+            deployed contract address immediately.
+          </p>
+        </div>
+        <div className="hero-grid">
+          <Stat label="Network" value="preview" />
+          <Stat label="Wallet" value={walletStatus} />
+          <Stat label="Status" value={status} />
+          <Stat label="Contract" value={deployed ? formatShort(deployed.contractAddress) : "not deployed"} />
+        </div>
+        <div className="winner">
+          <strong>Wallet state:</strong> {walletDetail}
+          {deployed ? (
+            <>
+              <br />
+              <span className="mono">Contract address: {deployed.contractAddress}</span>
+            </>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">1AM</p>
+            <h2>Connect preview wallet</h2>
+          </div>
+        </div>
+
+        <div className="form-grid">
+          <label>
+            Contract name
+            <input value={contractName} onChange={(event) => setContractName(event.target.value)} />
+          </label>
+        </div>
+
+        <div className="button-row">
+          <button disabled={busy} onClick={() => void connectWallet()}>
+            Connect 1AM
+          </button>
+          <button className="ghost" disabled={busy || !adapter} onClick={() => void deploy()}>
+            Deploy contract
+          </button>
+        </div>
+
+        <p className="muted">
+          This path uses the browser wallet extension and 1AM&apos;s provider flow. No server-side
+          deployer wallet or local proof server is required in the main flow.
+        </p>
+      </section>
+
+      <section className="card">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Result</p>
+            <h2>Deployed contract address</h2>
+          </div>
+        </div>
+
+        {deployed ? (
+          <div className="winner mono">{deployed.contractAddress}</div>
+        ) : (
+          <p className="muted">No contract deployed yet.</p>
+        )}
+
+        {error ? <div className="message error">Error: {error}</div> : null}
+      </section>
+    </main>
+  );
+}
+
 export default function App() {
+  if (window.location.pathname === "/deploy") {
+    return <DeployPage />;
+  }
+
   const client = useMemo<AuctionClient>(() => new LocalAuctionClient(), []);
   const [state, setState] = useState<AuctionPublicState | null>(null);
   const [status, setStatus] = useState("");
@@ -219,6 +348,9 @@ export default function App() {
         </div>
         <a className="history-link" href="#transaction-history">
           View transaction history
+        </a>
+        <a className="history-link" href="/deploy">
+          Open browser deploy
         </a>
       </section>
 

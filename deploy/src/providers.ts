@@ -61,6 +61,8 @@ export async function createProviders(
       ? keystore.getBech32Address().toString()
       : String(keystore.getPublicKey?.() ?? "sealed-bid-account");
 
+  console.log("Deploy account ID:", accountId);
+
   return {
     privateStateProvider: levelPrivateStateProvider({
       privateStateStoreName,

@@ -103,7 +103,10 @@ npm run dev
 
 Then open the local Vite URL.
 
-If you are previewing a deployed contract, add a `frontend/.env` file with:
+To deploy from the browser extension on Midnight preview, open `http://localhost:5173/deploy`.
+Connect 1AM, approve the browser wallet prompt, and the page will show the deployed contract address.
+
+If you are previewing a deployed contract from a static page, you can still add a `frontend/.env` file with:
 
 ```bash
 VITE_PREVIEW_CONTRACT_ID=0xYOUR_PREVIEW_CONTRACT_ID_HERE
@@ -132,6 +135,14 @@ The GitHub Actions workflow runs on push and pull request:
 - installs contract dependencies
 - runs the contract test suite
 - can be extended to run typecheck and frontend build
+
+## Deploy
+
+- Browser deploy route: `/deploy`
+- Wallet: `1AM`
+- Network: `preview`
+- Main flow: browser extension only
+- Do not use the server-side `deploy/` path for the main preview deploy flow
 
 ## Submission Checklist
 
