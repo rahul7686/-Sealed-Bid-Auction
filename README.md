@@ -51,9 +51,36 @@ What an observer cannot learn:
 
 ## Repository Layout
 
-- `contract/` - Compact contract, managed witnesses, and Vitest coverage
-- `frontend/` - React demo UI with a local auction simulator
-- `.github/workflows/ci.yml` - CI workflow for install, typecheck, and tests
+```text
+-Sealed-Bid-Auction/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── contract/
+│   ├── src/
+│   │   ├── managed/
+│   │   ├── test/
+│   │   ├── config.ts
+│   │   ├── index.ts
+│   │   ├── logger.ts
+│   │   ├── sealed-bid-auction.compact
+│   │   └── witnesses.ts
+│   ├── package.json
+│   └── tsconfig.json
+├── frontend/
+│   ├── src/
+│   │   ├── auction/
+│   │   ├── components/
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   └── styles.css
+│   ├── package.json
+│   └── vite.config.ts
+├── deploy/
+│   ├── src/
+│   └── package.json
+└── README.md
+```
 
 ## Contract Summary
 
