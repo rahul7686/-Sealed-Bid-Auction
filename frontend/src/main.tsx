@@ -4,7 +4,7 @@ import App from "./App";
 import "./styles.css";
 import { setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
 
-setNetworkId("Undeclared");
+setNetworkId("preview");
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
