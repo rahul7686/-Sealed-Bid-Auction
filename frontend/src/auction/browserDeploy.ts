@@ -15,13 +15,26 @@ export async function connectPreview1AM(): Promise<OneAMWalletAdapter> {
 
 export async function deployPreviewContract(
   adapter: OneAMWalletAdapter,
-  contractName = DEFAULT_CONTRACT_NAME
+  contractName = DEFAULT_CONTRACT_NAME,
+  itemDescription = "Sealed-bid item"
 ): Promise<BrowserDeployResult> {
   const providers = await buildOneAMProviders(adapter, {
     contractName
   });
+
+  // Create an initial random private state (mocked since auctioneer doesn't bid during deploy)
+  const initialPrivateState = {
+    secretKey: new Uint8Array(32).fill(1),
+    bidAmount: 0n,
+    bidSalt: new Uint8Array(32).fill(2)
+  };
+
   const deployed = await deployContract(providers, {
-    compiledContract: Contract
-  });
+    compiledContract: Contract,
+    args: [itemDescription],
+    privateStateId: `${DEFAULT_CONTRACT_NAME}PrivateState`,
+    initialPrivateState
+  } as any);
+
   return { contractAddress: deployed.contractAddress };
 }

@@ -77,9 +77,6 @@ What an observer cannot learn:
 │   │   └── styles.css
 │   ├── package.json
 │   └── vite.config.ts
-├── deploy/
-│   ├── src/
-│   └── package.json
 └── README.md
 ```
 
@@ -170,7 +167,6 @@ The GitHub Actions workflow runs on push and pull request:
 - Wallet: `1AM`
 - Network: `preview`
 - Main flow: browser extension only
-- Do not use the server-side `deploy/` path for the main preview deploy flow
 
 ## Submission Checklist
 
