@@ -1,5 +1,6 @@
 import { OneAMWalletAdapter, buildOneAMProviders, deployContract } from "midnight-wallet-kit";
 import { setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
+import { CompiledContract } from "@midnight-ntwrk/compact-js";
 import { Contract } from "../generated/sealed-bid-auction/contract/index.js";
 
 const DEFAULT_CONTRACT_NAME = "SealedBidAuction";
@@ -25,6 +26,10 @@ export async function deployPreviewContract(
     contractName
   });
 
+  const compiledContract = (CompiledContract.make(contractName, Contract) as any).pipe(
+    (CompiledContract as any).withVacantWitnesses
+  );
+
   // Create an initial random private state (mocked since auctioneer doesn't bid during deploy)
   const initialPrivateState = {
     secretKey: new Uint8Array(32).fill(1),
@@ -33,7 +38,7 @@ export async function deployPreviewContract(
   };
 
   const deployed = await deployContract(providers, {
-    compiledContract: Contract,
+    compiledContract,
     args: [itemDescription],
     privateStateId: `${DEFAULT_CONTRACT_NAME}PrivateState`,
     initialPrivateState
