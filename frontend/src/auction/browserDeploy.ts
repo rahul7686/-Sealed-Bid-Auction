@@ -42,8 +42,11 @@ export async function deployPreviewContract(
     localBidSalt: (ctx: any) => [ctx.privateState, initialPrivateState.bidSalt],
   };
 
+  const ZK_ASSET_PATH = "/zk/sealed-bid-auction/";
+
   const compiledContract = (CompiledContract.make(contractName, Contract) as any).pipe(
-    (cc: any) => (CompiledContract as any).withWitnesses(witnesses)(cc)
+    (cc: any) => (CompiledContract as any).withWitnesses(witnesses)(cc),
+    (CompiledContract as any).withCompiledFileAssets(ZK_ASSET_PATH)
   );
 
   const deployed = await deployContract(providers, {
