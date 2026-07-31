@@ -26,16 +26,25 @@ export async function deployPreviewContract(
     contractName
   });
 
-  const compiledContract = (CompiledContract.make(contractName, Contract) as any).pipe(
-    (CompiledContract as any).withVacantWitnesses
-  );
-
-  // Create an initial random private state (mocked since auctioneer doesn't bid during deploy)
+  // Create an initial private state for the auctioneer deployer
   const initialPrivateState = {
     secretKey: new Uint8Array(32).fill(1),
     bidAmount: 0n,
     bidSalt: new Uint8Array(32).fill(2)
   };
+
+  // The SealedBidAuction contract constructor calls localSecretKey to derive
+  // the auctioneer identity, so we must provide real witness functions
+  // (withVacantWitnesses won't work here).
+  const witnesses = {
+    localSecretKey: (ctx: any) => [ctx.privateState, initialPrivateState.secretKey],
+    localBidAmount: (ctx: any) => [ctx.privateState, initialPrivateState.bidAmount],
+    localBidSalt: (ctx: any) => [ctx.privateState, initialPrivateState.bidSalt],
+  };
+
+  const compiledContract = (CompiledContract.make(contractName, Contract) as any).pipe(
+    (cc: any) => (CompiledContract as any).withWitnesses(witnesses)(cc)
+  );
 
   const deployed = await deployContract(providers, {
     compiledContract,
