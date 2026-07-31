@@ -22,8 +22,11 @@ export async function deployPreviewContract(
   itemDescription = "Sealed-bid item"
 ): Promise<BrowserDeployResult> {
   setNetworkId("preview");
+  const ZK_ASSET_PATH = "/zk/sealed-bid-auction/";
+
   const providers = await buildOneAMProviders(adapter, {
-    contractName
+    contractName,
+    zkConfigBaseUrl: new URL(ZK_ASSET_PATH, window.location.origin).toString()
   });
 
   // Create an initial private state for the auctioneer deployer
@@ -41,8 +44,6 @@ export async function deployPreviewContract(
     localBidAmount: (ctx: any) => [ctx.privateState, initialPrivateState.bidAmount],
     localBidSalt: (ctx: any) => [ctx.privateState, initialPrivateState.bidSalt],
   };
-
-  const ZK_ASSET_PATH = "/zk/sealed-bid-auction/";
 
   const compiledContract = (CompiledContract.make(contractName, Contract) as any).pipe(
     (cc: any) => (CompiledContract as any).withWitnesses(witnesses)(cc),
